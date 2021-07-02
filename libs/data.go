@@ -9,9 +9,7 @@ import (
 	"strconv"
 )
 
-const fileName string = "timestamps.log"
-
-func Write(t int64) {
+func AppendFile(t int64, fileName string) {
 	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println(err)
@@ -22,32 +20,53 @@ func Write(t int64) {
 	_, _ = writer.WriteString(strconv.FormatInt(t, 10) + "\n")
 
 	writer.Flush()
-	f.Close()
+	if err := f.Close(); err != nil {
+		log.Fatal(err)
+	}
 }
 
-func ReadFromFile() []int64 {
-	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDONLY, 0644)
+func CleanFile(fileName string) {
+	f, err := os.OpenFile(fileName, os.O_TRUNC, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		log.Fatal(err)
+	}
+
+}
+func ReadFromFile(fileName string) []int64 {
+	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDONLY, 0644)
 	var result []int64
 	if err != nil {
-		log.Fatalf("failed opening file: %s", err)
+		log.Fatalf("failed opening f: %s", err)
 		return result
 	}
 
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(f)
 	scanner.Split(bufio.ScanLines)
-	var txtlines []string
+	var lines []string
 
 	for scanner.Scan() {
-		txtlines = append(txtlines, scanner.Text())
+		lines = append(lines, scanner.Text())
 	}
 
-	file.Close()
+	if err := f.Close(); err != nil {
+		log.Fatal(err)
+	}
 
-	for _, line := range txtlines {
+	for _, line := range lines {
 		value, error := strconv.ParseInt(line, 10, 64)
 		if error == nil {
 			result = append(result, value)
 		}
 	}
 	return result
+}
+
+func RemoveFile(fileName string) {
+	e := os.Remove(fileName)
+	if e != nil {
+		log.Fatal(e)
+	}
 }
